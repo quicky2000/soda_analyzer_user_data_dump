@@ -1,8 +1,7 @@
 /*
   This file is part of osm_diff_analyzer_test_api, Openstreetmap
-  diff analyzer whose aim is to test API allowing to analyzers to get
-  OSM object information through OSM API implementation provided by
-  diff analyzis framewwork
+  diff analyzer whose aim is to get all OSM data created/modified by
+  a specified user and that are still present in database
   Copyright (C) 2012  Julien Thevenon ( julien_thevenon at yahoo.fr )
 
   This program is free software: you can redistribute it and/or modify
