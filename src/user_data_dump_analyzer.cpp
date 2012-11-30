@@ -373,7 +373,7 @@ namespace osm_diff_analyzer_user_data_dump
   void user_data_dump_analyzer::dump_xml_node(std::ofstream & p_stream,const osm_api_data_types::osm_node * p_node)
   {
     assert(p_node);
-    p_stream << "  <node id=\"" << p_node->get_id() << "\" lat=\"" << p_node->get_lat() << "\" lon=\"" << p_node->get_lon() << "\" visible=\"true\" timestamp=\"" << p_node->get_timestamp() << "\" user=\"" << p_node->get_user() << "\" uid=\"" << p_node->get_user_id() << "\" version=\"" << p_node->get_version() << "\" changeset=\""<< p_node->get_changeset() << "\"" ;
+    p_stream << "  <node id=\"" << p_node->get_id() << std::setprecision(15) << "\" lat=\"" << p_node->get_lat() << "\" lon=\"" << p_node->get_lon() << "\" visible=\"true\" timestamp=\"" << p_node->get_timestamp() << "\" user=\"" << p_node->get_user() << "\" uid=\"" << p_node->get_user_id() << "\" version=\"" << p_node->get_version() << "\" changeset=\""<< p_node->get_changeset() << "\"" ;
     const std::map<std::string,std::string> & l_tags = p_node->get_tags();
     if(l_tags.size())
       {
