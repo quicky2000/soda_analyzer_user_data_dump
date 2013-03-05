@@ -122,6 +122,17 @@ namespace osm_diff_analyzer_user_data_dump
     inline void get_object_browse_url(std::string & p_result,
                                       const std::string & p_type,
                                       const osm_api_data_types::osm_object::t_osm_id & p_id);
+    inline void get_api_object_url(std::string & p_result,
+                                   const std::string & p_type,
+                                   const osm_api_data_types::osm_object::t_osm_id & p_id,
+                                   const osm_api_data_types::osm_core_element::t_osm_version & p_version);
+    inline void ui_register_module(const osm_diff_analyzer_if::analyzer_base & p_module,
+				   const std::string & p_text);
+    inline void ui_append_log_text(const osm_diff_analyzer_if::analyzer_base & p_module,
+				   const std::string & p_text);
+    inline void ui_declare_html_report(const osm_diff_analyzer_if::analyzer_base & p_module,
+				       const std::string & p_name);
+
   private:
     osm_diff_analyzer_if::common_api_if::t_get_user_subscription_date m_get_user_subscription_date;
     osm_diff_analyzer_if::common_api_if::t_get_node m_get_node;
@@ -153,6 +164,10 @@ namespace osm_diff_analyzer_user_data_dump
     osm_diff_analyzer_if::common_api_if::t_get_osm_change_file_content m_get_osm_change_file_content;
     osm_diff_analyzer_if::common_api_if::t_get_osm_file_content m_get_osm_file_content;
     osm_diff_analyzer_if::common_api_if::t_get_object_browse_url m_get_object_browse_url;
+    osm_diff_analyzer_if::common_api_if::t_get_api_object_url m_get_api_object_url;
+    osm_diff_analyzer_if::common_api_if::t_ui_register_module m_ui_register_module;
+    osm_diff_analyzer_if::common_api_if::t_ui_append_log_text m_ui_append_log_text;
+    osm_diff_analyzer_if::common_api_if::t_ui_declare_html_report m_ui_declare_html_report;
    };
 
   //---------------------------------------------------------------------------- 
@@ -195,6 +210,10 @@ namespace osm_diff_analyzer_user_data_dump
       m_get_osm_change_file_content = (osm_diff_analyzer_if::common_api_if::t_get_osm_change_file_content)l_api_ptr[osm_diff_analyzer_if::common_api_if::GET_OSM_CHANGE_FILE_CONTENT]; 
       m_get_osm_file_content = (osm_diff_analyzer_if::common_api_if::t_get_osm_file_content)l_api_ptr[osm_diff_analyzer_if::common_api_if::GET_OSM_FILE_CONTENT]; 
       m_get_object_browse_url = (osm_diff_analyzer_if::common_api_if::t_get_object_browse_url)l_api_ptr[osm_diff_analyzer_if::common_api_if::GET_OBJECT_BROWSE_URL]; 
+      m_get_api_object_url = (osm_diff_analyzer_if::common_api_if::t_get_api_object_url)l_api_ptr[osm_diff_analyzer_if::common_api_if::GET_API_OBJECT_URL]; 
+      m_ui_register_module = (osm_diff_analyzer_if::common_api_if::t_ui_register_module)l_api_ptr[osm_diff_analyzer_if::common_api_if::UI_REGISTER_MODULE];
+      m_ui_append_log_text = (osm_diff_analyzer_if::common_api_if::t_ui_append_log_text)l_api_ptr[osm_diff_analyzer_if::common_api_if::UI_APPEND_LOG_TEXT];
+      m_ui_declare_html_report = (osm_diff_analyzer_if::common_api_if::t_ui_declare_html_report)l_api_ptr[osm_diff_analyzer_if::common_api_if::UI_DECLARE_HTML_REPORT];
     }
 
   //----------------------------------------------------------------------------
@@ -407,6 +426,38 @@ namespace osm_diff_analyzer_user_data_dump
    {
      m_get_object_browse_url(p_result,p_type,p_id);
    }
+
+  //----------------------------------------------------------------------------
+  void user_data_dump_common_api::get_api_object_url(std::string & p_result,
+						 const std::string & p_type,
+						 const osm_api_data_types::osm_object::t_osm_id & p_id,
+						 const osm_api_data_types::osm_core_element::t_osm_version & p_version)
+  {
+    m_get_api_object_url(p_result,p_type,p_id,p_version);
+  }
+  
+  //----------------------------------------------------------------------------
+  void user_data_dump_common_api::ui_register_module(const osm_diff_analyzer_if::analyzer_base & p_module,
+						 const std::string & p_name)
+  {
+    m_ui_register_module(p_module,p_name);
+  }
+
+  //----------------------------------------------------------------------------
+  void user_data_dump_common_api::ui_append_log_text(const osm_diff_analyzer_if::analyzer_base & p_module,
+						 const std::string & p_text)
+  {
+    m_ui_append_log_text(p_module,p_text);
+  }
+
+  //----------------------------------------------------------------------------
+  void user_data_dump_common_api::ui_declare_html_report(const osm_diff_analyzer_if::analyzer_base & p_module,
+						     const std::string & p_name)
+  {
+    m_ui_declare_html_report(p_module,p_name);
+  }
+
+
 
 }
 #endif // _USER_DATA_DUMP_COMMON_API_H_

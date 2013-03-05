@@ -54,9 +54,9 @@ namespace osm_diff_analyzer_user_data_dump
     void store_node(const osm_api_data_types::osm_node * p_node);
     void store_way(const osm_api_data_types::osm_way * p_way);
     void store_relation(const osm_api_data_types::osm_relation * p_relation);
-    void dump_xml_node(std::ofstream & p_stream,const osm_api_data_types::osm_node * p_node);
-    void dump_xml_way(std::ofstream & p_stream,const osm_api_data_types::osm_way * p_way);
-    void dump_xml_relation(std::ofstream & p_stream,const osm_api_data_types::osm_relation * p_relation);
+    void dump_xml_node(std::ofstream & p_stream,const osm_api_data_types::osm_node & p_node);
+    void dump_xml_way(std::ofstream & p_stream,const osm_api_data_types::osm_way & p_way);
+    void dump_xml_relation(std::ofstream & p_stream,const osm_api_data_types::osm_relation & p_relation);
     void dump_xml_tags(std::ofstream & p_stream,const std::map<std::string,std::string> & p_tags);
     void dump_xml(const std::string & p_name, 
                   const std::set<osm_api_data_types::osm_object::t_osm_id> & p_node_ids,
@@ -70,6 +70,8 @@ namespace osm_diff_analyzer_user_data_dump
                    const std::set<osm_api_data_types::osm_object::t_osm_id> & p_relation_ids);
     user_data_dump_common_api & m_api;
     bool m_done;
+    std::string m_user_name;
+    std::string m_start_date;
 
     // Structures to store nodes, ways and relations to be dumped
     std::map<osm_api_data_types::osm_object::t_osm_id,const osm_api_data_types::osm_node *> m_nodes;

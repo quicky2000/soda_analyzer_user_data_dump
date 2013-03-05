@@ -21,7 +21,8 @@
 #include "user_data_dump_analyzer_description.h"
 #include "user_data_dump_analyzer.h"
 #include "user_data_dump_common_api.h"
-
+#include "quicky_exception.h"
+#include <sstream>
 #include <cassert>
 #include <iostream>
 
@@ -68,8 +69,15 @@ namespace osm_diff_analyzer_user_data_dump
   {
     void register_module(uintptr_t* p_api,uint32_t p_api_size)
     {
-      assert(p_api_size == MODULE_LIBRARY_IF_API_SIZE);
+      if(p_api_size != MODULE_LIBRARY_IF_API_SIZE)
+	{
+	  std::stringstream l_stream;
+	  l_stream << "p_api_size != MODULE_LIBRARY_IF_API_SIZE : " << p_api_size << " < " << MODULE_LIBRARY_IF_API_SIZE << ". Please use a newver version of saoda";
+	  throw quicky_exception::quicky_logic_exception(l_stream.str(),__LINE__,__FILE__);
+	}
+#ifdef DEBUG
       std::cout << "Registration of user_data_dump analyzer API " << std::endl ;
+#endif
       p_api[osm_diff_analyzer_if::module_library_if::GET_API_VERSION] = (uintptr_t)user_data_dump_wrapper::get_api_version;
       p_api[osm_diff_analyzer_if::module_library_if::GET_API_SIZE] = (uintptr_t)user_data_dump_wrapper::get_api_size;
       p_api[osm_diff_analyzer_if::module_library_if::GET_DESCRIPTION] = (uintptr_t)user_data_dump_wrapper::get_user_data_dump_description;

@@ -33,209 +33,364 @@ namespace osm_diff_analyzer_user_data_dump
   user_data_dump_analyzer::user_data_dump_analyzer(const osm_diff_analyzer_if::module_configuration * p_conf,user_data_dump_common_api & p_api):
     osm_diff_analyzer_sax_if::sax_analyzer_base("user_analyser",p_conf->get_name(),""),
     m_api(p_api),
-    m_done(false)
+    m_done(false),
+    m_user_name("CEDRIC007"),
+    m_start_date("2010-03-01T14:02:41Z")
   {
+    // Register module to be able to use User Interface
+    m_api.ui_register_module(*this,get_name());
+
+    const std::map<std::string,std::string> & l_conf_parameters = p_conf->get_parameters();
+
+    // User_name parameter management
+    std::map<std::string,std::string>::const_iterator l_iter = l_conf_parameters.find("user_name");
+    if(l_iter != l_conf_parameters.end())
+      {
+	m_user_name = l_iter->second;
+	std::stringstream l_stream ;
+	l_stream << "\"user_name\" parameter configured with value \"" << m_user_name <<"\"" ;
+	m_api.ui_append_log_text(*this,l_stream.str());
+      }
+    else
+      {
+	std::stringstream l_stream;
+	l_stream << "Using default value parameter[\"user_name\"]=\"" << m_user_name << "\"" << std::endl ;
+	m_api.ui_append_log_text(*this,l_stream.str());
+      }
+
+    // start_date parameter management
+    l_iter = l_conf_parameters.find("start_date");
+    if(l_iter != l_conf_parameters.end())
+      {
+	m_start_date = l_iter->second;
+	std::stringstream l_stream ;
+	l_stream << "\"start_date\" parameter configured with value \"" << m_start_date <<"\"" ;
+	m_api.ui_append_log_text(*this,l_stream.str());
+      }
+    else
+      {
+	std::stringstream l_stream;
+	l_stream << "Using default value parameter[\"start_date\"]=\"" << m_start_date << "\"" << std::endl ;
+	m_api.ui_append_log_text(*this,l_stream.str());
+      }
 
   }
 
   //------------------------------------------------------------------------------
   user_data_dump_analyzer::~user_data_dump_analyzer(void)
   {
+
   }
 
   //------------------------------------------------------------------------------
   void user_data_dump_analyzer::init(const osm_diff_analyzer_if::osm_diff_state * p_diff_state)
   {
-    uint32_t l_max_changeset_nb = std::numeric_limits<uint32_t>::max();
 
-    // Get changesets of CEDRIC007
-    std::cout << "========================" << std::endl ;
-    std::cout << "GET changesets of CEDRIC007 since 2010-03-01T14:02:41Z" << std::endl ;
-    std::cout << "========================" << std::endl ;
-    std::set<osm_api_data_types::osm_object::t_osm_id> l_ids;
-    std::string l_end_date;
-    std::string l_previous_end_date;
-    do
+    if(!m_done)
       {
-        std::cout << "Calling with end date " << l_end_date << std::endl;
-        const std::vector<osm_api_data_types::osm_changeset*> * l_changesets_CEDRIC007 = m_api.get_changesets(osm_api_data_types::osm_bounding_box(),0,"CEDRIC007","2010-03-01T14:02:41Z",l_end_date,false,false);
-        l_previous_end_date = l_end_date;
-        for(std::vector<osm_api_data_types::osm_changeset*>::const_iterator l_iter = l_changesets_CEDRIC007->begin();
-            l_iter != l_changesets_CEDRIC007->end() && l_ids.size()<l_max_changeset_nb;
-            ++l_iter)
-          {
-            l_ids.insert((*l_iter)->get_id());
-            l_end_date = (*l_iter)->get_created_at();
-            std::cout << **l_iter;
-            delete *l_iter;
-          }
-        delete l_changesets_CEDRIC007;
-      }while(l_previous_end_date != l_end_date && l_ids.size()<l_max_changeset_nb);
-    std::cout << "-> End date = " << l_end_date << std::endl ;
-    std::cout << "Nb changesetes : " << l_ids.size() << std::endl ;
-    std::cout << "------------------------" << std::endl ;
-    std::cout << "Get changeset contents : " << std::endl ;
-    uint32_t l_count = 0;
-    std::map<osm_api_data_types::osm_object::t_osm_id,osm_api_data_types::osm_core_element::t_osm_version> m_deleted_nodes_info;
-    std::map<osm_api_data_types::osm_object::t_osm_id,osm_api_data_types::osm_core_element::t_osm_version> m_deleted_ways_info;
-    std::map<osm_api_data_types::osm_object::t_osm_id,osm_api_data_types::osm_core_element::t_osm_version> m_deleted_relations_info;
-    std::set<osm_api_data_types::osm_object::t_osm_id> m_deleted_nodes_ids;
-    std::set<osm_api_data_types::osm_object::t_osm_id> m_deleted_ways_ids;
-    std::set<osm_api_data_types::osm_object::t_osm_id> m_deleted_relations_ids;
-    std::set<osm_api_data_types::osm_object::t_osm_id> m_modified_nodes_ids;
-    std::set<osm_api_data_types::osm_object::t_osm_id> m_modified_ways_ids;
-    std::set<osm_api_data_types::osm_object::t_osm_id> m_modified_relations_ids;
-    std::set<osm_api_data_types::osm_object::t_osm_id> m_created_nodes_ids;
-    std::set<osm_api_data_types::osm_object::t_osm_id> m_created_ways_ids;
-    std::set<osm_api_data_types::osm_object::t_osm_id> m_created_relations_ids;
+	m_done = true;
+	uint32_t l_max_changeset_nb = std::numeric_limits<uint32_t>::max();
 
-    for(std::set<osm_api_data_types::osm_object::t_osm_id>::const_iterator l_iter = l_ids.begin();
-        l_iter != l_ids.end();
-        ++l_iter)
-      {
-        ++l_count;
-        std::cout << "Get content of changeset " << *l_iter << "\t" << (100.0 * l_count) / l_ids.size() << "%" << std::endl ;
-        const std::vector<osm_api_data_types::osm_change *> * l_changes = m_api.get_changeset_content(*l_iter);
-        for(std::vector<osm_api_data_types::osm_change*>::const_iterator l_iter = l_changes->begin();
-            l_iter != l_changes->end();
-            ++l_iter)
-          {
-            const osm_api_data_types::osm_core_element * const l_element = (*l_iter)->get_core_element();
-            assert(l_element);
-            switch((*l_iter)->get_type())
-              {
-              case osm_api_data_types::osm_change::CREATION :
-                {
-                  switch(l_element->get_core_type())
-                    {
-                    case osm_api_data_types::osm_core_element::NODE :
-                      m_created_nodes_ids.insert(l_element->get_id());
-                      break;
-                    case osm_api_data_types::osm_core_element::WAY :
-                      m_created_ways_ids.insert(l_element->get_id());
-                      break;
-                    case osm_api_data_types::osm_core_element::RELATION :
-                      m_created_relations_ids.insert(l_element->get_id());
-                      break;
-                    case osm_api_data_types::osm_core_element::INTERNAL_INVALID:
-                      std::cout << "ERROR : unexpected core type value \"" << osm_api_data_types::osm_core_element::get_osm_type_str(l_element->get_core_type()) << "\"" << std::endl ;
-                      exit(-1);
-                      break;
-                    }
-                }
-                break;
-              case osm_api_data_types::osm_change::MODIFICATION :
-                {
-                  switch(l_element->get_core_type())
-                    {
-                    case osm_api_data_types::osm_core_element::NODE :
-                      m_modified_nodes_ids.insert(l_element->get_id());
-                      break;
-                    case osm_api_data_types::osm_core_element::WAY :
-                      m_modified_ways_ids.insert(l_element->get_id());
-                      break;
-                    case osm_api_data_types::osm_core_element::RELATION :
-                      m_modified_relations_ids.insert(l_element->get_id());
-                      break;
-                    case osm_api_data_types::osm_core_element::INTERNAL_INVALID:
-                      std::cout << "ERROR : unexpected core type value \"" << osm_api_data_types::osm_core_element::get_osm_type_str(l_element->get_core_type()) << "\"" << std::endl ;
-                      exit(-1);
-                      break;
-                    }
-                }
-                break;
-              case osm_api_data_types::osm_change::DELETION :
-                {
-                  switch(l_element->get_core_type())
-                    {
-                    case osm_api_data_types::osm_core_element::NODE :
-                      m_deleted_nodes_info.insert(std::map<osm_api_data_types::osm_object::t_osm_id,osm_api_data_types::osm_core_element::t_osm_version>::value_type(l_element->get_id(),l_element->get_version()));
-                      m_deleted_nodes_ids.insert(l_element->get_id());
-                      break;
-                    case osm_api_data_types::osm_core_element::WAY :
-                      m_deleted_ways_info.insert(std::map<osm_api_data_types::osm_object::t_osm_id,osm_api_data_types::osm_core_element::t_osm_version>::value_type(l_element->get_id(),l_element->get_version()));
-                      m_deleted_ways_ids.insert(l_element->get_id());
-                      break;
-                    case osm_api_data_types::osm_core_element::RELATION :
-                      m_deleted_relations_info.insert(std::map<osm_api_data_types::osm_object::t_osm_id,osm_api_data_types::osm_core_element::t_osm_version>::value_type(l_element->get_id(),l_element->get_version()));
-                      m_deleted_relations_ids.insert(l_element->get_id());
-                      break;
-                    case osm_api_data_types::osm_core_element::INTERNAL_INVALID:
-                      std::cout << "ERROR : unexpected core type value \"" << osm_api_data_types::osm_core_element::get_osm_type_str(l_element->get_core_type()) << "\"" << std::endl ;
-                      exit(-1);
-                      break;
-                    }
-                }
-                break;
-              case osm_api_data_types::osm_change::INTERNAL_INVALID :
-                std::cout << "Unexpected change type" << std::endl ;
-                exit(-1);
-                break;
-              }
-            delete *l_iter;
-          }
-        delete l_changes;
-      }
+	// Get changesets of CEDRIC007
+	m_api.ui_append_log_text(*this,"========================");
+	{
+	  std::stringstream l_stream;
+	  l_stream << "GET changesets of " << m_user_name << " since " << m_start_date ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	m_api.ui_append_log_text(*this,"========================");
+	std::set<osm_api_data_types::osm_object::t_osm_id> l_ids;
+	std::string l_end_date;
+	std::string l_previous_end_date;
+	do
+	  {
+	    {
+	      std::stringstream l_stream;
+	      l_stream << "Calling with end date" << l_end_date;
+	      m_api.ui_append_log_text(*this,l_stream.str());
+	    }
 
-    std::cout << "------------------------------------------------" << std::endl ;
-    std::cout << "Deleted nodes : " << m_deleted_nodes_info.size() << std::endl ;
-    std::cout << "Deleted ways : " << m_deleted_ways_info.size() << std::endl ;
-    std::cout << "Deleted relations : " << m_deleted_relations_info.size() << std::endl ;
-    std::cout << "Modified nodes : " << m_modified_nodes_ids.size() << std::endl ;
-    std::cout << "Modified ways : " << m_modified_ways_ids.size() << std::endl ;
-    std::cout << "Modified relations : " << m_modified_relations_ids.size() << std::endl ;
-    std::cout << "Created nodes : " << m_created_nodes_ids.size() << std::endl ;
-    std::cout << "Created ways : " << m_created_ways_ids.size() << std::endl ;
-    std::cout << "Created relations : " << m_created_relations_ids.size() << std::endl ;
-    std::cout << "------------------------------------------------" << std::endl ;
+	    const std::vector<osm_api_data_types::osm_changeset*> * l_changesets = m_api.get_changesets(osm_api_data_types::osm_bounding_box(),0,m_user_name,m_start_date,l_end_date,false,false);
+	    l_previous_end_date = l_end_date;
+	    for(std::vector<osm_api_data_types::osm_changeset*>::const_iterator l_iter = l_changesets->begin();
+		l_iter != l_changesets->end() && l_ids.size()<l_max_changeset_nb;
+		++l_iter)
+	      {
+		l_ids.insert((*l_iter)->get_id());
+		l_end_date = (*l_iter)->get_created_at();
+		{
+		  std::stringstream l_stream;
+		  l_stream << **l_iter;
+		  m_api.ui_append_log_text(*this,l_stream.str());
+		}
+		delete *l_iter;
+	      }
+	    delete l_changesets;
+	  }while(l_previous_end_date != l_end_date && l_ids.size()<l_max_changeset_nb);
 
-    std::cout << "Generate HTML reports" << std::endl ;
-    dump_html("CEDRIC007_created_objects.html",m_created_nodes_ids,m_created_ways_ids,m_created_relations_ids);
-    dump_html("CEDRIC007_modified_objects.html",m_modified_nodes_ids,m_modified_ways_ids,m_modified_relations_ids);
-    dump_html("CEDRIC007_deleted_objects.html",m_deleted_nodes_ids,m_deleted_ways_ids,m_deleted_relations_ids);
+	{
+	  std::stringstream l_stream;
+	  l_stream << "-> End date = " << l_end_date ; 
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Nb changesetes : " << l_ids.size() ; 
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	m_api.ui_append_log_text(*this,"------------------------");
+	m_api.ui_append_log_text(*this,"Get changeset contents : ");
+	uint32_t l_count = 0;
+	std::map<osm_api_data_types::osm_object::t_osm_id,osm_api_data_types::osm_core_element::t_osm_version> m_deleted_nodes_info;
+	std::map<osm_api_data_types::osm_object::t_osm_id,osm_api_data_types::osm_core_element::t_osm_version> m_deleted_ways_info;
+	std::map<osm_api_data_types::osm_object::t_osm_id,osm_api_data_types::osm_core_element::t_osm_version> m_deleted_relations_info;
+	std::set<osm_api_data_types::osm_object::t_osm_id> m_deleted_nodes_ids;
+	std::set<osm_api_data_types::osm_object::t_osm_id> m_deleted_ways_ids;
+	std::set<osm_api_data_types::osm_object::t_osm_id> m_deleted_relations_ids;
+	std::set<osm_api_data_types::osm_object::t_osm_id> m_modified_nodes_ids;
+	std::set<osm_api_data_types::osm_object::t_osm_id> m_modified_ways_ids;
+	std::set<osm_api_data_types::osm_object::t_osm_id> m_modified_relations_ids;
+	std::set<osm_api_data_types::osm_object::t_osm_id> m_created_nodes_ids;
+	std::set<osm_api_data_types::osm_object::t_osm_id> m_created_ways_ids;
+	std::set<osm_api_data_types::osm_object::t_osm_id> m_created_relations_ids;
+
+	for(std::set<osm_api_data_types::osm_object::t_osm_id>::const_iterator l_iter = l_ids.begin();
+	    l_iter != l_ids.end();
+	    ++l_iter)
+	  {
+	    ++l_count;
+	    {
+	      std::stringstream l_stream;
+	      l_stream << "Get content of changeset " << *l_iter << "\t" << (100.0 * l_count) / l_ids.size() << "%" ;
+	      m_api.ui_append_log_text(*this,l_stream.str());
+	    }
+	    const std::vector<osm_api_data_types::osm_change *> * l_changes = m_api.get_changeset_content(*l_iter);
+	    for(std::vector<osm_api_data_types::osm_change*>::const_iterator l_iter = l_changes->begin();
+		l_iter != l_changes->end();
+		++l_iter)
+	      {
+		const osm_api_data_types::osm_core_element * const l_element = (*l_iter)->get_core_element();
+		if(l_element == NULL) throw quicky_exception::quicky_logic_exception("Core element should not be NULL",__LINE__,__FILE__);
+
+		switch((*l_iter)->get_type())
+		  {
+		  case osm_api_data_types::osm_change::CREATION :
+		    {
+		      switch(l_element->get_core_type())
+			{
+			case osm_api_data_types::osm_core_element::NODE :
+			  m_created_nodes_ids.insert(l_element->get_id());
+			  break;
+			case osm_api_data_types::osm_core_element::WAY :
+			  m_created_ways_ids.insert(l_element->get_id());
+			  break;
+			case osm_api_data_types::osm_core_element::RELATION :
+			  m_created_relations_ids.insert(l_element->get_id());
+			  break;
+			case osm_api_data_types::osm_core_element::INTERNAL_INVALID:
+			  {
+			    std::stringstream l_stream;
+			    l_stream << "ERROR : unexpected core type value \"" << osm_api_data_types::osm_core_element::get_osm_type_str(l_element->get_core_type()) << "\"" ;
+			    throw quicky_exception::quicky_logic_exception(l_stream.str(),__LINE__,__FILE__);
+			  }
+			  break;
+			}
+		    }
+		    break;
+		  case osm_api_data_types::osm_change::MODIFICATION :
+		    {
+		      switch(l_element->get_core_type())
+			{
+			case osm_api_data_types::osm_core_element::NODE :
+			  m_modified_nodes_ids.insert(l_element->get_id());
+			  break;
+			case osm_api_data_types::osm_core_element::WAY :
+			  m_modified_ways_ids.insert(l_element->get_id());
+			  break;
+			case osm_api_data_types::osm_core_element::RELATION :
+			  m_modified_relations_ids.insert(l_element->get_id());
+			  break;
+			case osm_api_data_types::osm_core_element::INTERNAL_INVALID:
+			  {
+			    std::stringstream l_stream;
+			    l_stream << "ERROR : unexpected core type value \"" << osm_api_data_types::osm_core_element::get_osm_type_str(l_element->get_core_type()) << "\"" ;
+			    throw quicky_exception::quicky_logic_exception(l_stream.str(),__LINE__,__FILE__);
+			  }
+			  break;
+			}
+		    }
+		    break;
+		  case osm_api_data_types::osm_change::DELETION :
+		    {
+		      switch(l_element->get_core_type())
+			{
+			case osm_api_data_types::osm_core_element::NODE :
+			  m_deleted_nodes_info.insert(std::map<osm_api_data_types::osm_object::t_osm_id,osm_api_data_types::osm_core_element::t_osm_version>::value_type(l_element->get_id(),l_element->get_version()));
+			  m_deleted_nodes_ids.insert(l_element->get_id());
+			  break;
+			case osm_api_data_types::osm_core_element::WAY :
+			  m_deleted_ways_info.insert(std::map<osm_api_data_types::osm_object::t_osm_id,osm_api_data_types::osm_core_element::t_osm_version>::value_type(l_element->get_id(),l_element->get_version()));
+			  m_deleted_ways_ids.insert(l_element->get_id());
+			  break;
+			case osm_api_data_types::osm_core_element::RELATION :
+			  m_deleted_relations_info.insert(std::map<osm_api_data_types::osm_object::t_osm_id,osm_api_data_types::osm_core_element::t_osm_version>::value_type(l_element->get_id(),l_element->get_version()));
+			  m_deleted_relations_ids.insert(l_element->get_id());
+			  break;
+			case osm_api_data_types::osm_core_element::INTERNAL_INVALID:
+			  {
+			    std::stringstream l_stream;
+			    l_stream << "ERROR : unexpected core type value \"" << osm_api_data_types::osm_core_element::get_osm_type_str(l_element->get_core_type()) << "\"" ;
+			    throw quicky_exception::quicky_logic_exception(l_stream.str(),__LINE__,__FILE__);
+			  }
+			  break;
+			}
+		    }
+		    break;
+		  case osm_api_data_types::osm_change::INTERNAL_INVALID :
+		    {
+		      std::stringstream l_stream;
+		      l_stream << "Unexpected change type : " << (*l_iter)->get_type() ;
+		      throw quicky_exception::quicky_logic_exception(l_stream.str(),__LINE__,__FILE__);
+		    }
+		    break;
+		  }
+		delete *l_iter;
+	      }
+	    delete l_changes;
+	  }
+	m_api.ui_append_log_text(*this,"------------------------------------------------");
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Deleted nodes : " << m_deleted_nodes_info.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Deleted ways : " << m_deleted_ways_info.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Deleted relations : " << m_deleted_relations_info.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Modified nodes : " << m_modified_nodes_ids.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Modified ways : " << m_modified_ways_ids.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Modified relations : " << m_modified_relations_ids.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Created nodes : " << m_created_nodes_ids.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Created ways : " << m_created_ways_ids.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Created relations : " << m_created_relations_ids.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	m_api.ui_append_log_text(*this,"------------------------------------------------");
+
+	m_api.ui_append_log_text(*this,"Generate HTML reports");
+	dump_html("CEDRIC007_created_objects.html",m_created_nodes_ids,m_created_ways_ids,m_created_relations_ids);
+	dump_html("CEDRIC007_modified_objects.html",m_modified_nodes_ids,m_modified_ways_ids,m_modified_relations_ids);
+	dump_html("CEDRIC007_deleted_objects.html",m_deleted_nodes_ids,m_deleted_ways_ids,m_deleted_relations_ids);
     
-    //    std::cout << "Clean removed objects" << std::endl ;
-    //    clean_removed_objects(m_modified_nodes_ids,m_deleted_nodes_ids);
-    //    clean_removed_objects(m_modified_nodes_ids,m_created_nodes_ids);
-    //    clean_removed_objects(m_created_nodes_ids,m_deleted_nodes_ids);
+	m_api.ui_append_log_text(*this,"Clean removed objects");
+	clean_removed_objects(m_modified_nodes_ids,m_deleted_nodes_ids);
+	clean_removed_objects(m_modified_nodes_ids,m_created_nodes_ids);
+	clean_removed_objects(m_created_nodes_ids,m_deleted_nodes_ids);
 
-    //    clean_removed_objects(m_modified_ways_ids,m_deleted_ways_ids);
-    //    clean_removed_objects(m_modified_ways_ids,m_created_ways_ids);
-    //    clean_removed_objects(m_created_ways_ids,m_deleted_ways_ids);
+	clean_removed_objects(m_modified_ways_ids,m_deleted_ways_ids);
+	clean_removed_objects(m_modified_ways_ids,m_created_ways_ids);
+	clean_removed_objects(m_created_ways_ids,m_deleted_ways_ids);
 
-    //    clean_removed_objects(m_modified_relations_ids,m_deleted_relations_ids);
-    //    clean_removed_objects(m_modified_relations_ids,m_created_relations_ids);
-    //    clean_removed_objects(m_created_relations_ids,m_deleted_relations_ids);
-
-
-    std::cout << "------------------------------------------------" << std::endl ;
-    std::cout << "Deleted nodes : " << m_deleted_nodes_info.size() << std::endl ;
-    std::cout << "Deleted ways : " << m_deleted_ways_info.size() << std::endl ;
-    std::cout << "Deleted relations : " << m_deleted_relations_info.size() << std::endl ;
-    std::cout << "Modified nodes : " << m_modified_nodes_ids.size() << std::endl ;
-    std::cout << "Modified ways : " << m_modified_ways_ids.size() << std::endl ;
-    std::cout << "Modified relations : " << m_modified_relations_ids.size() << std::endl ;
-    std::cout << "Created nodes : " << m_created_nodes_ids.size() << std::endl ;
-    std::cout << "Created ways : " << m_created_ways_ids.size() << std::endl ;
-    std::cout << "Created relations : " << m_created_relations_ids.size() << std::endl ;
-    std::cout << "------------------------------------------------" << std::endl ;
+	clean_removed_objects(m_modified_relations_ids,m_deleted_relations_ids);
+	clean_removed_objects(m_modified_relations_ids,m_created_relations_ids);
+	clean_removed_objects(m_created_relations_ids,m_deleted_relations_ids);
 
 
-    std::cout << "Store objects" << std::endl ;
-    store_relations(m_created_relations_ids);
-    store_relations(m_modified_relations_ids);
-    store_ways(m_created_ways_ids);
-    store_ways(m_modified_ways_ids);
-    store_nodes(m_created_nodes_ids);
-    store_nodes(m_modified_nodes_ids);
+	m_api.ui_append_log_text(*this,"------------------------------------------------");
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Deleted nodes : " << m_deleted_nodes_info.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Deleted ways : " << m_deleted_ways_info.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Deleted relations : " << m_deleted_relations_info.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Modified nodes : " << m_modified_nodes_ids.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Modified ways : " << m_modified_ways_ids.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Modified relations : " << m_modified_relations_ids.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Created nodes : " << m_created_nodes_ids.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Created ways : " << m_created_ways_ids.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	{
+	  std::stringstream l_stream;
+	  l_stream << "Created relations : " << m_created_relations_ids.size() ;
+	  m_api.ui_append_log_text(*this,l_stream.str());
+	}
+	m_api.ui_append_log_text(*this,"------------------------------------------------");
 
-    std::cout << "------------------------------------------------" << std::endl ;
-    std::cout << "Dump OSM files" << std::endl ;
-    dump_xml("CEDRIC007_created_objects.osm",m_created_nodes_ids,m_created_ways_ids,m_created_relations_ids);
-    dump_xml("CEDRIC007_modified_objects.osm",m_modified_nodes_ids,m_modified_ways_ids,m_modified_relations_ids);
-    dump_xml("CEDRIC007_deleted_objects.osm",m_deleted_nodes_ids,m_deleted_ways_ids,m_deleted_relations_ids);
 
-    exit(-1);
+	m_api.ui_append_log_text(*this,"Store objects");
+	store_relations(m_created_relations_ids);
+	store_relations(m_modified_relations_ids);
+	store_ways(m_created_ways_ids);
+	store_ways(m_modified_ways_ids);
+	store_nodes(m_created_nodes_ids);
+	store_nodes(m_modified_nodes_ids);
+
+	m_api.ui_append_log_text(*this,"------------------------------------------------");
+	m_api.ui_append_log_text(*this,"Dump OSM files");
+	dump_xml("CEDRIC007_created_objects.osm",m_created_nodes_ids,m_created_ways_ids,m_created_relations_ids);
+	dump_xml("CEDRIC007_modified_objects.osm",m_modified_nodes_ids,m_modified_ways_ids,m_modified_relations_ids);
+	dump_xml("CEDRIC007_deleted_objects.osm",m_deleted_nodes_ids,m_deleted_ways_ids,m_deleted_relations_ids);
+
+	m_api.ui_append_log_text(*this,"DONE !");
+	m_api.ui_append_log_text(*this,"You can stop");
+      }
   }
 
   //------------------------------------------------------------------------------
@@ -369,11 +524,10 @@ namespace osm_diff_analyzer_user_data_dump
   }
 
   //------------------------------------------------------------------------------
-  void user_data_dump_analyzer::dump_xml_node(std::ofstream & p_stream,const osm_api_data_types::osm_node * p_node)
+  void user_data_dump_analyzer::dump_xml_node(std::ofstream & p_stream,const osm_api_data_types::osm_node & p_node)
   {
-    assert(p_node);
-    p_stream << "  <node id=\"" << p_node->get_id() << std::setprecision(15) << "\" lat=\"" << p_node->get_lat() << "\" lon=\"" << p_node->get_lon() << "\" visible=\"true\" timestamp=\"" << p_node->get_timestamp() << "\" user=\"" << p_node->get_user() << "\" uid=\"" << p_node->get_user_id() << "\" version=\"" << p_node->get_version() << "\" changeset=\""<< p_node->get_changeset() << "\"" ;
-    const std::map<std::string,std::string> & l_tags = p_node->get_tags();
+    p_stream << "  <node id=\"" << p_node.get_id() << std::setprecision(15) << "\" lat=\"" << p_node.get_lat() << "\" lon=\"" << p_node.get_lon() << "\" visible=\"true\" timestamp=\"" << p_node.get_timestamp() << "\" user=\"" << p_node.get_user() << "\" uid=\"" << p_node.get_user_id() << "\" version=\"" << p_node.get_version() << "\" changeset=\""<< p_node.get_changeset() << "\"" ;
+    const std::map<std::string,std::string> & l_tags = p_node.get_tags();
     if(l_tags.size())
       {
         p_stream << ">" << std::endl ;
@@ -387,34 +541,32 @@ namespace osm_diff_analyzer_user_data_dump
   }
 
   //------------------------------------------------------------------------------
-  void user_data_dump_analyzer::dump_xml_way(std::ofstream & p_stream,const osm_api_data_types::osm_way * p_way)
+  void user_data_dump_analyzer::dump_xml_way(std::ofstream & p_stream,const osm_api_data_types::osm_way & p_way)
   {
-    assert(p_way);
-    p_stream << "  <way id=\"" << p_way->get_id() << "\" visible=\"true\" timestamp=\"" << p_way->get_timestamp() << "\" user=\"" << p_way->get_user() << "\" uid=\"" << p_way->get_user_id() << "\" version=\"" << p_way->get_version() << "\" changeset=\""<< p_way->get_changeset() << "\">" << std::endl ;
-    const std::vector<osm_api_data_types::osm_core_element::t_osm_id> & l_nodes = p_way->get_node_refs();
+    p_stream << "  <way id=\"" << p_way.get_id() << "\" visible=\"true\" timestamp=\"" << p_way.get_timestamp() << "\" user=\"" << p_way.get_user() << "\" uid=\"" << p_way.get_user_id() << "\" version=\"" << p_way.get_version() << "\" changeset=\""<< p_way.get_changeset() << "\">" << std::endl ;
+    const std::vector<osm_api_data_types::osm_core_element::t_osm_id> & l_nodes = p_way.get_node_refs();
     for(std::vector<osm_api_data_types::osm_core_element::t_osm_id>::const_iterator l_iter = l_nodes.begin();
         l_iter != l_nodes.end();
         ++l_iter)
       {
         p_stream << "    <nd ref=\"" << *l_iter << "\"/>" << std::endl ;
       }
-    dump_xml_tags(p_stream,p_way->get_tags());
+    dump_xml_tags(p_stream,p_way.get_tags());
     p_stream << "  </way>" << std::endl ;
   }
 
   //------------------------------------------------------------------------------
-  void user_data_dump_analyzer::dump_xml_relation(std::ofstream & p_stream,const osm_api_data_types::osm_relation * p_relation)
+  void user_data_dump_analyzer::dump_xml_relation(std::ofstream & p_stream,const osm_api_data_types::osm_relation & p_relation)
   {
-    assert(p_relation);
-    p_stream << "  <relation id=\"" << p_relation->get_id() << "\" visible=\"true\" timestamp=\"" << p_relation->get_timestamp() << "\" user=\"" << p_relation->get_user() << "\" uid=\"" << p_relation->get_user_id() << "\" version=\"" << p_relation->get_version() << "\" changeset=\""<< p_relation->get_changeset() << "\">" << std::endl ;
-    const std::vector<osm_api_data_types::osm_relation_member*> & l_members = p_relation->get_members();
+    p_stream << "  <relation id=\"" << p_relation.get_id() << "\" visible=\"true\" timestamp=\"" << p_relation.get_timestamp() << "\" user=\"" << p_relation.get_user() << "\" uid=\"" << p_relation.get_user_id() << "\" version=\"" << p_relation.get_version() << "\" changeset=\""<< p_relation.get_changeset() << "\">" << std::endl ;
+    const std::vector<osm_api_data_types::osm_relation_member*> & l_members = p_relation.get_members();
     for(std::vector<osm_api_data_types::osm_relation_member*>::const_iterator l_iter = l_members.begin();
         l_iter != l_members.end();
         ++l_iter)
       {
         p_stream << "    <member type=\"" << osm_api_data_types::osm_core_element::get_osm_type_str((*l_iter)->get_type()) << "\" ref=\"" << (*l_iter)->get_object_ref() << "\" role=\"" << (*l_iter)->get_role() << "\"/>" << std::endl ;
       }
-    dump_xml_tags(p_stream,p_relation->get_tags());
+    dump_xml_tags(p_stream,p_relation.get_tags());
  
     p_stream << "  </relation>" << std::endl ;
   }
@@ -558,7 +710,8 @@ namespace osm_diff_analyzer_user_data_dump
         std::map<osm_api_data_types::osm_object::t_osm_id,const osm_api_data_types::osm_node *>::const_iterator l_iter_node = m_nodes.find(*l_iter);
         if(l_iter_node != m_nodes.end())
           {
-            dump_xml_node(l_file,l_iter_node->second);
+	    if(l_iter_node->second == NULL) throw quicky_exception::quicky_logic_exception("Node pointer should not be NULL",__LINE__,__FILE__);
+            dump_xml_node(l_file,*(l_iter_node->second));
             ++l_nb_dumped_nodes;
           }
       }    
@@ -570,7 +723,8 @@ namespace osm_diff_analyzer_user_data_dump
         std::map<osm_api_data_types::osm_object::t_osm_id,const osm_api_data_types::osm_way *>::const_iterator l_iter_way = m_ways.find(*l_iter);
         if(l_iter_way != m_ways.end())
           {
-            dump_xml_way(l_file,l_iter_way->second);
+	    if(l_iter_way->second == NULL) throw quicky_exception::quicky_logic_exception("Way pointer should not be NULL",__LINE__,__FILE__);
+            dump_xml_way(l_file,*(l_iter_way->second));
             ++l_nb_dumped_ways;
           }
       }    
@@ -582,16 +736,33 @@ namespace osm_diff_analyzer_user_data_dump
         std::map<osm_api_data_types::osm_object::t_osm_id,const osm_api_data_types::osm_relation *>::const_iterator l_iter_relation = m_relations.find(*l_iter);
         if(l_iter_relation != m_relations.end())
           {
-            dump_xml_relation(l_file,l_iter_relation->second);
+	    if(l_iter_relation->second == NULL) throw quicky_exception::quicky_logic_exception("Relation pointer should not be NULL",__LINE__,__FILE__);
+            dump_xml_relation(l_file,*(l_iter_relation->second));
             ++l_nb_dumped_relations;
           }
       }    
     l_file << "</osm>" << std::endl ;
     l_file.close();
-    std::cout << "Dump statistics for file " << p_name << std::endl ;
-    std::cout << "Nodes " << l_nb_dumped_nodes << std::endl ;
-    std::cout << "Ways " << l_nb_dumped_ways << std::endl ;
-    std::cout << "Relations " << l_nb_dumped_relations << std::endl ;
+    {
+      std::stringstream l_stream;
+      l_stream << "Dump statistics for file " << p_name ;
+      m_api.ui_append_log_text(*this,l_stream.str());
+    }
+    {
+      std::stringstream l_stream;
+      l_stream << "Nodes " << l_nb_dumped_nodes ;
+      m_api.ui_append_log_text(*this,l_stream.str());
+    }
+    {
+      std::stringstream l_stream;
+      l_stream << "Ways " << l_nb_dumped_ways ;
+      m_api.ui_append_log_text(*this,l_stream.str());
+    }
+    {
+      std::stringstream l_stream;
+      l_stream << "Relations " << l_nb_dumped_relations ;
+      m_api.ui_append_log_text(*this,l_stream.str());
+    }
   }
 
   //------------------------------------------------------------------------------
